@@ -1,0 +1,48 @@
+p {
+    font-weight: bold;
+    font-size: 20px;
+}
+
+#top {
+    text-decoration: underline;
+}
+
+.emphasizeText {
+    font-style: italic;
+    color: darkblue;
+}
+
+body {
+    background-color: lightsteelblue;
+    font-family: 'Times New Roman', Times, serif;
+    text-align: center;
+    border: 9px solid navy;
+    margin: 20px;
+    padding: 20px;
+}
+
+h2 {
+    color: navy;
+}
+
+img {
+    border: 3px solid navy;
+}
+
+iframe {
+    border: 3px solid navy;
+}
+
+a {
+    color: darkblue;
+}
+
+ul {
+    display: inline-block;
+    text-align: left;
+}
+
+ol {
+    display: inline-block;
+    text-align: left;
+}
