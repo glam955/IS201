@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sweet Stakes Blackjack</title>
+    <style>
+        :root {
+            --felt-green: #2e7d32;
+            --gold: #ffc107;
+            --candy-pink: #ff80ab;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #1b5e20;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .table {
+            background-color: var(--felt-green);
+            width: 500px;
+            padding: 2rem;
+            border-radius: 100px 100px 20px 20px;
+            border: 10px solid #5d4037;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-weight: bold;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .card-area {
+            min-height: 120px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .card {
+            width: 60px;
+            height: 90px;
+            background: white;
+            color: black;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .btn-hit { background: var(--gold); }
+        .btn-stand { background: #eee; }
+        .btn-deal { background: var(--candy-pink); color: white; width: 100%; }
+
+        #message {
+            margin: 15px 0;
+            font-size: 1.2rem;
+            height: 30px;
+            color: var(--gold);
+        }
+
+        .bet-input {
+            width: 60px;
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="table">
+    <div class="stats">
+        <div>🍬 Candy Jar: <span id="candy-count">50</span></div>
+        <div>Bet: <input type="number" id="bet-amount" class="bet-input" value="5" min="1" oninput="validity.valid||(value='');"></div>
+    </div>
+
+    <div id="dealer-area">
+        <p>Dealer's Hand (<span id="dealer-score">?</span>)</p>
+        <div class="card-area" id="dealer-cards"></div>
+    </div>
+
+    <div id="message">Place your candy bet!</div>
+
+    <div id="player-area">
+        <div class="card-area" id="player-cards"></div>
+        <p>Your Hand (<span id="player-score">0</span>)</p>
+    </div>
+
+    <div class="controls">
+        <button id="hit-btn" class="btn-hit" onclick="hit()" disabled>Hit</button>
+        <button id="stand-btn" class="btn-stand" onclick="stand()" disabled>Stand</button>
+    </div>
+    <div style="margin-top:10px">
+        <button id="deal-btn" class="btn-deal" onclick="startDeal()">Deal for Candy!</button>
+    </div>
+    <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px;">
+    <a href="index.html" style="color: var(--gold); text-decoration: none; font-size: 0.9rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span>📊</span> Return to Homepage
+    </a>
+</div>
+<div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px;">
+    <a href="fromscratch.html" style="color: var(--gold); text-decoration: none; font-size: 0.9rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span>📊</span> Return to My Passion Page
+    </a>
+</div>
+</div>
+
+<script>
+    let deck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let candyJar = 50;
+    let currentBet = 0;
+    let gameOver = true;
+
+    function createDeck() {
+        const suits = ['♠', '♣', '♥', '♦'];
+        const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+        deck = [];
+        for (let s of suits) {
+            for (let v of values) {
+                deck.push({ value: v, suit: s });
+            }
+        }
+        deck = deck.sort(() => Math.random() - 0.5);
+    }
+
+    function getCardValue(card) {
+        if (['J', 'Q', 'K'].includes(card.value)) return 10;
+        if (card.value === 'A') return 11;
+        return parseInt(card.value);
+    }
+
+    function calculateScore(hand) {
+        let score = hand.reduce((sum, card) => sum + getCardValue(card), 0);
+        let aces = hand.filter(card => card.value === 'A').length;
+        while (score > 21 && aces > 0) {
+            score -= 10;
+            aces--;
+        }
+        return score;
+    }
+
+    function renderCard(card, containerId) {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `<span>${card.value}</span><span style="font-size:0.8rem">${card.suit}</span>`;
+        if (card.suit === '♥' || card.suit === '♦') div.style.color = 'red';
+        document.getElementById(containerId).appendChild(div);
+    }
+
+    function startDeal() {
+    // 1. Capture the bet and the current balance
+    const betInput = document.getElementById('bet-amount');
+    currentBet = parseInt(betInput.value);
+
+    // 2. The "Solvency Check" (Actuarial validation)
+    if (isNaN(currentBet) || currentBet <= 0) {
+        alert("Please enter a valid amount of candy to bet!");
+        return;
+    }
+
+    if (currentBet > candyJar) {
+        alert(`Insufficient Funds! You only have ${candyJar} candies left in your jar.`);
+        // Optional: Automatically set the bet to their max remaining candy
+        betInput.value = candyJar; 
+        return;
+    }
+
+    // 3. Proceed with the game if the check passes
+    gameOver = false;
+    createDeck();
+    playerHand = [deck.pop(), deck.pop()];
+    dealerHand = [deck.pop(), deck.pop()];
+
+    document.getElementById('player-cards').innerHTML = '';
+    document.getElementById('dealer-cards').innerHTML = '';
+    document.getElementById('message').innerText = "Hit or Stand?";
+    
+    playerHand.forEach(c => renderCard(c, 'player-cards'));
+    
+    // Hide dealer's second card
+    renderCard(dealerHand[0], 'dealer-cards');
+    const hiddenCard = document.createElement('div');
+    hiddenCard.className = 'card';
+    hiddenCard.style.background = '#333';
+    hiddenCard.id = 'hidden-card';
+    document.getElementById('dealer-cards').appendChild(hiddenCard);
+
+    updateScores(false);
+    toggleButtons(true);
+}
+
+    function updateScores(showDealer) {
+        document.getElementById('player-score').innerText = calculateScore(playerHand);
+        document.getElementById('dealer-score').innerText = showDealer ? calculateScore(dealerHand) : "?";
+    }
+
+    function toggleButtons(active) {
+        document.getElementById('hit-btn').disabled = !active;
+        document.getElementById('stand-btn').disabled = !active;
+        document.getElementById('deal-btn').disabled = active;
+    }
+
+    function hit() {
+        playerHand.push(deck.pop());
+        renderCard(playerHand[playerHand.length - 1], 'player-cards');
+        const score = calculateScore(playerHand);
+        updateScores(false);
+        if (score > 21) endHand("Bust! Dealer takes the candy.");
+    }
+
+    async function stand() {
+        toggleButtons(false);
+        document.getElementById('hidden-card').remove();
+        renderCard(dealerHand[1], 'dealer-cards');
+        
+        let dScore = calculateScore(dealerHand);
+        while (dScore < 17) {
+            dealerHand.push(deck.pop());
+            renderCard(dealerHand[dealerHand.length - 1], 'dealer-cards');
+            dScore = calculateScore(dealerHand);
+            updateScores(true);
+            await new Promise(r => setTimeout(r, 600));
+        }
+
+        const pScore = calculateScore(playerHand);
+        updateScores(true);
+
+        if (dScore > 21 || pScore > dScore) {
+            endHand("You win! 🍬 Collected.");
+        } else if (dScore > pScore) {
+            endHand("Dealer wins. Candy lost.");
+        } else {
+            endHand("Push! Keep your candy.");
+        }
+    }
+
+   function endHand(msg) {
+    gameOver = true;
+    document.getElementById('message').innerText = msg;
+
+    // Fixed logic: Check for specific strings to avoid confusion
+    if (msg.includes("You win!") || msg.includes("collected")) {
+        candyJar += currentBet;
+    } else if (msg.includes("Dealer wins") || msg.includes("lost") || msg.includes("Bust")) {
+        candyJar -= currentBet;
+    }
+    // If it's a "Push", candyJar stays exactly the same
+    
+    document.getElementById('candy-count').innerText = candyJar;
+    toggleButtons(false);
+
+    if (candyJar <= 0) {
+        document.getElementById('message').innerText = "Jar Empty! Refresh for more candy.";
+        document.getElementById('deal-btn').disabled = true;
+    }
+}
+</script>
+
+</body>
+</html>
